@@ -1,6 +1,5 @@
 #include "ServerSocket.h"
 
-
 ServerSocket::ServerSocket() : serverSocket(INVALID_SOCKET), clientSocket(INVALID_SOCKET), securityContext({0})
 {
 }
@@ -79,6 +78,37 @@ void ServerSocket::AcceptClientConnection()
 	}
 }
 
+void ServerSocket::ReadClientRequest(SOCKET* clientSocket, CBuffer* requestBuffer)
+{
+	const int recvBufferSize = 4096;
+	char recvBuffer[recvBufferSize];
+	int bytesRecieved = recv(*clientSocket, recvBuffer, recvBufferSize, 0);
+	if (bytesRecieved == 0)
+	{
+		throw std::exception("Receieved 0 bytes from client");
+	}
+
+	if (bytesRecieved > recvBufferSize)
+	{
+		throw std::exception("Incoming bytes is larger than const buffer in read client. Potentially need to rethink this method.");
+	}
+
+	requestBuffer->AllocateCharBuffer(bytesRecieved + 1);
+	memcpy(requestBuffer->GetCharBuffer(), recvBuffer, bytesRecieved);
+	requestBuffer->GetCharBuffer()[bytesRecieved] = 0x00;
+}
+void ServerSocket::RespondToClient(SOCKET* clientSocket, CBuffer* responseBuffer)
+{
+	// Send data to the client
+	int bytesSent = send(*clientSocket, responseBuffer->GetCharBuffer(), responseBuffer->GetCharBufferSize(), 0);
+	if (bytesSent == 0)
+	{
+		throw std::exception("Sent 0 bytes to client");
+	}
+
+	Sleep(1000);
+}
+
 void ServerSocket::GetServerIP(CBuffer* wcharBuffer)
 {
 	int successCode = 0;
@@ -92,8 +122,7 @@ void ServerSocket::GetServerIP(CBuffer* wcharBuffer)
 	int getHostStatus = gethostname(hostNameBuffer.GetCharBuffer(), hostNameBuffer.GetCharBufferSize());
 	if (getHostStatus != successCode)
 	{
-		std::cout << "Error at gethostname(): " << WSAGetLastError() << std::endl;
-		return;
+		throw std::exception("Error at gethostname()");
 	}
 
 	hostNameBuffer.GetCharBuffer()[hostNameBuffer.GetCharBufferSize() - 1] = 0x00; // Null terminate the string
@@ -102,8 +131,7 @@ void ServerSocket::GetServerIP(CBuffer* wcharBuffer)
 	int wideHostNameLength = MultiByteToWideChar(CP_ACP, 0, hostNameBuffer.GetCharBuffer(), -1, nullptr, 0);
 	if (wideHostNameLength == 0)
 	{
-		std::cout << "Error at MultiByteToWideChar(): " << WSAGetLastError() << std::endl;
-		return;
+		throw std::exception("Error at MultiByteToWideChar()");
 	}
 
 	// Allocate memory for new wide character host name using length of wide character host name
@@ -114,8 +142,7 @@ void ServerSocket::GetServerIP(CBuffer* wcharBuffer)
 	int conversionStatus = MultiByteToWideChar(CP_ACP, 0, hostNameBuffer.GetCharBuffer(), -1, wideCharHostName.GetWCharBuffer(), wideCharHostName.GetWCharBufferSize());
 	if (conversionStatus == 0)
 	{
-		std::cout << "Error at MultiByteToWideChar(): " << WSAGetLastError() << std::endl;
-		return;
+		throw std::exception("Error at MultiByteToWideChar()");
 	}
 
 	// Set up the search information for the host, specifying the hosts family, socket type, and protocol we want returned
@@ -131,8 +158,7 @@ void ServerSocket::GetServerIP(CBuffer* wcharBuffer)
 	int getAddressStatus = GetAddrInfoW(wideCharHostName.GetWCharBuffer(), NULL, &hostSearchInformation, &hostResultInformation);
 	if (getAddressStatus != successCode)
 	{
-		std::cout << "Error at GetAddrInfoW(): " << WSAGetLastError() << std::endl;
-		return;
+		throw std::exception("Error at GetAddrInfoW()");
 	}
 
 	// Retrieve memory address for the the address information
@@ -147,10 +173,21 @@ void ServerSocket::GetServerIP(CBuffer* wcharBuffer)
 	InetNtopW(hostSearchInformation.ai_family, (void*)&hostIpAddress, wcharBuffer->GetWCharBuffer(), INET_ADDRSTRLEN);
 	if (wcharBuffer->GetWCharBuffer() == nullptr)
 	{
-		std::cout << "Error at InetNtopW(): " << WSAGetLastError() << std::endl;
 		FreeAddrInfoW(hostResultInformation);
-		return;
+		throw std::exception("Error at InetNtopW()");
 	}
 
 	FreeAddrInfoW(hostResultInformation);
+}
+SOCKET* ServerSocket::GetServerSocket()
+{
+	return &serverSocket;
+}
+SOCKET* ServerSocket::GetClientSocket()
+{
+	return &clientSocket;
+}
+CtxtHandle* ServerSocket::GetSecurityContext()
+{
+	return &securityContext;
 }
