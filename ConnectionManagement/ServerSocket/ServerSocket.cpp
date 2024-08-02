@@ -61,7 +61,7 @@ void ServerSocket::ListenForConnections()
 {
 	unsigned short defaultMaxConnections = 1;
 
-	// Listen for incoming connections
+	// Listen for incoming connections to this socket
 	int listenStatus = listen(serverSocket, defaultMaxConnections);
 	if (listenStatus == SOCKET_ERROR)
 	{
@@ -77,22 +77,24 @@ void ServerSocket::AcceptClientConnection()
 		throw std::exception("Error at accept()");
 	}
 }
-
 void ServerSocket::ReadClientRequest(SOCKET* clientSocket, CBuffer* requestBuffer)
 {
+	// Allocate buffer for reading request from client
 	const int recvBufferSize = 4096;
 	char recvBuffer[recvBufferSize];
 	int bytesRecieved = recv(*clientSocket, recvBuffer, recvBufferSize, 0);
+
+	// Error Checks
 	if (bytesRecieved == 0)
 	{
 		throw std::exception("Receieved 0 bytes from client");
 	}
-
 	if (bytesRecieved > recvBufferSize)
 	{
 		throw std::exception("Incoming bytes is larger than const buffer in read client. Potentially need to rethink this method.");
 	}
 
+	// Copy received memory to my CBuffer class
 	requestBuffer->AllocateCharBuffer(bytesRecieved + 1);
 	memcpy(requestBuffer->GetCharBuffer(), recvBuffer, bytesRecieved);
 	requestBuffer->GetCharBuffer()[bytesRecieved] = 0x00;
@@ -101,11 +103,14 @@ void ServerSocket::RespondToClient(SOCKET* clientSocket, CBuffer* responseBuffer
 {
 	// Send data to the client
 	int bytesSent = send(*clientSocket, responseBuffer->GetCharBuffer(), responseBuffer->GetCharBufferSize(), 0);
+	
+	// Error checks
 	if (bytesSent == 0)
 	{
 		throw std::exception("Sent 0 bytes to client");
 	}
 
+	// Sleep to give client time to read the response
 	Sleep(1000);
 }
 
@@ -113,10 +118,10 @@ void ServerSocket::GetServerIP(CBuffer* wcharBuffer)
 {
 	int successCode = 0;
 
-	// Allocate memory so we can copy the host name into it. Dividing the buffer by 2 since char is 1 byte and wchar_t is 2 bytes
-	int hostNameBufferSize = 256;
+	// Allocate memory so we can copy the host name into it
+	int hostNameBufferMaxSize = 256;
 	CBuffer hostNameBuffer;
-	hostNameBuffer.AllocateCharBuffer(hostNameBufferSize);
+	hostNameBuffer.AllocateCharBuffer(hostNameBufferMaxSize);
 
 	// Get the host name and copy it into the allocated memory
 	int getHostStatus = gethostname(hostNameBuffer.GetCharBuffer(), hostNameBuffer.GetCharBufferSize());
@@ -134,7 +139,7 @@ void ServerSocket::GetServerIP(CBuffer* wcharBuffer)
 		throw std::exception("Error at MultiByteToWideChar()");
 	}
 
-	// Allocate memory for new wide character host name using length of wide character host name
+	// Allocate memory for new wide character host name using length of wide character host name (char is 1 byte and wchar_t is 2 bytes)
 	CBuffer wideCharHostName;
 	wideCharHostName.AllocateWCharBuffer(wideHostNameLength);
 

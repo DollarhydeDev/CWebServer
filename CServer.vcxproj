@@ -128,12 +128,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AuthManagement\Authentication\Authentication.cpp" />
+    <ClCompile Include="ConnectionManagement\HttpsObjects\HttpsRequest\HttpsRequest.cpp" />
     <ClCompile Include="MemoryManagement\CBuffer\CBuffer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ConnectionManagement\ServerSocket\ServerSocket.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AuthManagement\Authentication\Authentication.h" />
+    <ClInclude Include="ConnectionManagement\HttpsObjects\HttpsRequest\HttpsRequest.h" />
     <ClInclude Include="MemoryManagement\CBuffer\CBuffer.h" />
     <ClInclude Include="ConnectionManagement\ServerSocket\ServerSocket.h" />
   </ItemGroup>

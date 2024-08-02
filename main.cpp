@@ -7,6 +7,8 @@
 int main()
 {
 	WSADATA wsaData;
+
+	// Tell windows this app windows to use windows sockets
 	int startResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (startResult != 0)
 	{
@@ -14,9 +16,10 @@ int main()
 		return 1;
 	}
 
+	// Create my socket class
 	ServerSocket serverSocket;
 
-	// Creates a new socket and binds it to local ip and default port.
+	// Create the socket with default settings
 	try
 	{
 		serverSocket.CreateSocket();
@@ -55,10 +58,11 @@ int main()
 		return 1;
 	}
 
+	// Hard coded cert name for now
 	Authentication authentication;
 	wchar_t certificateName[] = L"192.168.5.110";
 
-	// Authenticates client using a certificate stored
+	// Authenticates client using a certificate
 	try
 	{
 		authentication.AuthenticateInbound(serverSocket.GetClientSocket(), certificateName, serverSocket.GetSecurityContext());
